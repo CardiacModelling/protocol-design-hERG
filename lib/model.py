@@ -40,12 +40,12 @@ class Timeout(myokit.ProgressReporter):
 #
 class Model(pints.ForwardModel):
     
-    def __init__(self, model_file, variable, current_readout, set_ion,
+    def __init__(self, model_file, variables, current_readout, set_ion,
                  temperature, transform=None, useFilterCap=False,
                  max_evaluation_time=5):
         """
         # model_file: mmt model file for myokit; main units: mV, ms, pA
-        # variable: myokit model variable, set model parameter.
+        # variables: myokit model variables, set model parameter.
         # current_readout: myokit model component, set output for method
         #                  simulate().
         # set_ion: myokit model ion concentration clamp, if any; format:
@@ -69,12 +69,12 @@ class Model(pints.ForwardModel):
         self.useFilterCap = useFilterCap
         
         # Set parameters and readout of simulate()
-        self.parameters = variable
+        self.parameters = variables
         self._readout = current_readout
         assert(len(self._readout) > 0)
         
         # Set up voltage clamp
-        for ion_var, ion_conc in set_ion:
+        for ion_var, ion_conc in set_ion.items():
             v = model.get(ion_var)
             if v.is_state():
                 v.demote()
@@ -82,7 +82,8 @@ class Model(pints.ForwardModel):
             
         # Detach voltage for voltage clamp(?)
         model_v = model.get('membrane.V')
-        model_v.demote()
+        if model_v.is_state():
+            model_v.demote()
         model_v.set_rhs(vhold)
         model.get('engine.pace').set_binding(None)
         model_v.set_binding('pace')
@@ -157,7 +158,7 @@ class Model(pints.ForwardModel):
             return float('inf')
 
         # Return all lump currents
-        if read_log is None
+        if read_log is None:
             o = np.zeros(times.shape)
             for i in to_read:
                 o += d[i]
@@ -241,7 +242,7 @@ class NaiveAllS1Score(pints.ErrorMeasure):
     def n_parameters(self):
         return len(self.parameters)
 
-    def __call__(self, param):
+    def __call__(self, param, debug=False):
         # Time for simulation
         times = np.arange(0, np.sum(param[1::2]), self._dt)
         pre_time = np.sum(param[1:-1:2])
@@ -257,34 +258,40 @@ class NaiveAllS1Score(pints.ErrorMeasure):
         total = 0
         tomax = None  # make sure it won't do something silly if tomax not def
         for i, var in enumerate(self._variables):
-            print(var, self._var_list[var])
+            cur = self._var_list[var]
+
+            if debug:
+                print(var, cur)
             # p_i = p_i + sensitivity * p_i
             x = np.copy(self._base_param)
             x[i] = x[i] * (1 + self._sensitivity)
-            d1 = self._model.simulate(x, times, [self._var_list[var]])
+            d1 = self._model.simulate(x, times, [cur])
             # p_i = p_i - sensitivity * p_i
             x = np.copy(self._base_param)
             x[i] = x[i] * (1 - self._sensitivity)
-            d_1 = self._model.simulate(x, times, [self._var_list[var]])
+            d_1 = self._model.simulate(x, times, [cur])
             
             if d1 == float('inf') or d_1 == float('inf'):
-                print(d1, d_1)
+                if debug:
+                    print(d1, d_1)
                 return float('inf')
 
-            dIdvar = (d1[var][idx_i:idx_f] - d_1[var][idx_i:idx_f]) \
+            dIdvar = (d1[cur][idx_i:idx_f] - d_1[cur][idx_i:idx_f]) \
                     / (2 * self._sensitivity)
 
             if var != self._max_var:
                 total += np.sum(np.abs(dIdvar))
-                print(np.sum(np.abs(dIdvar)))
+                if debug:
+                    print(np.sum(np.abs(dIdvar)))
             else:
                 tomax = np.sum(np.abs(dIdvar))
-                print(-np.sum(np.abs(dIdvar)))
+                if debug:
+                    print(-np.sum(np.abs(dIdvar)))
 
         return - tomax / total  # or total / tomax
 
 
-class NormalisedNaiveAllS1Score(pints.ErrorMeasure):
+class NormalisedNaiveS1CurrentScore(pints.ErrorMeasure):
     """
     Self define error measure for 3-step protocol optimisation.
     
@@ -304,7 +311,7 @@ class NormalisedNaiveAllS1Score(pints.ErrorMeasure):
                  sensitivity=0.025):
         """
         # model: model in this module.
-        # max_idx: idx of the current list for which to be maximised; this
+        # max_idx: idx of the parameter for which to be maximised; this
         #          should match `base_param`.
         # base_param: model's (local) parameters that this protocol
         #             optimisation based on; this should match `var_list`.
@@ -326,7 +333,7 @@ class NormalisedNaiveAllS1Score(pints.ErrorMeasure):
     def n_parameters(self):
         return len(self.parameters)
 
-    def __call__(self, param):
+    def __call__(self, param, debug=False):
         # Time for simulation
         times = np.arange(0, np.sum(param[1::2]), self._dt)
         pre_time = np.sum(param[1:-1:2])
@@ -343,30 +350,36 @@ class NormalisedNaiveAllS1Score(pints.ErrorMeasure):
         total = 0
         tomax = None  # make sure it won't do something silly if tomax not def
         for i, var in enumerate(self._variables):
-            print(var, self._var_list[var])
+            cur = self._var_list[var]
+            
+            if debug:
+                print(var, self._var_list[var])
             # p_i = p_i + sensitivity * p_i
             x = np.copy(self._base_param)
             x[i] = x[i] * (1 + self._sensitivity)
-            d1 = self._model.simulate(x, times, [self._var_list[var]])
+            d1 = self._model.simulate(x, times, [cur])
             # p_i = p_i - sensitivity * p_i
             x = np.copy(self._base_param)
             x[i] = x[i] * (1 - self._sensitivity)
-            d_1 = self._model.simulate(x, times, [self._var_list[var]])
+            d_1 = self._model.simulate(x, times, [cur])
             
             if d1 == float('inf') or d_1 == float('inf'):
-                print(d1, d_1)
+                if debug:
+                    print(d1, d_1)
                 return float('inf')
 
-            dIdvar = (d1[var][idx_i:idx_f] - d_1[var][idx_i:idx_f]) \
+            dIdvar = (d1[cur][idx_i:idx_f] - d_1[cur][idx_i:idx_f]) \
                     / (2 * self._sensitivity)
 
             if var != self._max_var:
                 total += np.sum(np.abs(dIdvar))
-                print(np.sum(np.abs(dIdvar)))
+                if debug:
+                    print(np.sum(np.abs(dIdvar)))
             else:
                 tomax = np.sum(np.abs(dIdvar))
                 total += tomax
-                print(-np.sum(np.abs(dIdvar)))
+                if debug:
+                    print(-np.sum(np.abs(dIdvar)))
                 
         # Part 2
         total_c_not_i = []
