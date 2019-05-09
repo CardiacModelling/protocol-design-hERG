@@ -203,7 +203,6 @@ class Model(pints.ForwardModel):
         return self.parameters
 
 
-
 #
 # Setup own score function
 #
@@ -244,19 +243,7 @@ class NaiveAllS1Score(pints.ErrorMeasure):
     def n_parameters(self):
         return len(self.parameters)
 
-    def __call__(self, param, debug=False):
-        # Time for simulation
-        times = np.arange(0, np.sum(param[1::2]), self._dt)
-        pre_time = np.sum(param[1:-1:2])
-        idx_i = int(pre_time / self._dt)
-        idx_f = -1
-        # Update protocol
-        self._model.set_voltage_protocol(param)
-        
-        ## p_i = p_i
-        # x = np.copy(self._base_param)
-        # d0 = self._model.simulate(x, times, [self._var_list[var]])
-
+    def _naiveS1(self, times, idx_i, idx_f, debug=False):
         total = 0
         tomax = None  # make sure it won't do something silly if tomax not def
         for i, var in enumerate(self._variables):
@@ -290,10 +277,72 @@ class NaiveAllS1Score(pints.ErrorMeasure):
                 if debug:
                     print(-np.sum(np.abs(dIdvar)))
 
+        return total, tomax
+
+    def __call__(self, param, debug=False):
+        # Time for simulation
+        times = np.arange(0, np.sum(param[1::2]), self._dt)
+        pre_time = np.sum(param[1:-1:2])
+        idx_i = int(pre_time / self._dt)
+        idx_f = -1
+        # Update protocol
+        self._model.set_voltage_protocol(param)
+
+        total, tomax = self._naiveS1(times, idx_i, idx_f, debug)
+
         return - tomax / total  # or total / tomax
 
 
-class NormalisedNaiveS1CurrentScore(pints.ErrorMeasure):
+class NaiveAllS1CurrentScore(NaiveAllS1Score):
+    """
+    Self define error measure for 3-step protocol optimisation.
+    
+    Note that this is not normalised to 1, so it is $J_i / \sum_{k!=i} J_k$,
+    where $J_i = \int_{t over step 3} |dI/dp_i * p_i| dt$.
+    """
+
+    def __init__(self, model, max_idx, base_param, var_list,
+                 sensitivity=0.025):
+        """
+        # model: model in this module.
+        # max_idx: idx of the parameter for which to be maximised; this
+        #          should match `base_param`.
+        # base_param: model's (local) parameters that this protocol
+        #             optimisation based on; this should match `var_list`.
+        # var_list: {'variable': 'current', ...}.
+        # sensitivity = naive approx. to sensitivity.
+        """
+        super(NaiveAllS1CurrentScore, self).__init__(
+                model, max_idx, base_param, var_list, sensitivity)
+
+    def __call__(self, param, debug=False):
+        # Time for simulation
+        times = np.arange(0, np.sum(param[1::2]), self._dt)
+        pre_time = np.sum(param[1:-1:2])
+        idx_i = int(pre_time / self._dt)
+        idx_f = -1
+        # Update protocol
+        self._model.set_voltage_protocol(param)
+        
+        # Part 1: parameter sensitivity
+        total, tomax = self._naiveS1(times, idx_i, idx_f, debug)
+
+        # Part 2: make current size bigger
+
+        ## p_i = p_i
+        x = np.copy(self._base_param)
+        max_cur = self._var_list[self._max_var]
+        d0 = self._model.simulate(x, times, [max_cur])
+
+        mean_o = 0.3  # open prob that roughly gives a good current
+        mean_c = np.mean(np.abs(d0[max_cur][idx_i:idx_f])) / \
+                (mean_o * self._base_param[0] * 100) # ~100 mV for (V - EK)
+        w_mean_c = 1.5  # weighting of mean_c
+
+        return - tomax / total - w_mean_c * mean_c  # or total / tomax
+
+
+class NormalisedNaiveS1CurrentScore(NaiveAllS1Score):
     """
     Self define error measure for 3-step protocol optimisation.
     
@@ -304,10 +353,6 @@ class NormalisedNaiveS1CurrentScore(pints.ErrorMeasure):
     A caveat is that the second criterion does not guarantee an overall big
     current.
     """
-    
-    parameters = [
-            's1v', 's1t', 's2v', 's2t', 's3v', 's3t'
-        ]
     
     def __init__(self, model, max_idx, base_param, var_list,
                  sensitivity=0.025):
@@ -320,20 +365,8 @@ class NormalisedNaiveS1CurrentScore(pints.ErrorMeasure):
         # var_list: {'variable': 'current', ...}.
         # sensitivity = naive approx. to sensitivity.
         """
-        super(NaiveAllS1Score, self).__init__()
-
-        self._model = model
-        self._max_idx = max_idx
-        self._base_param = base_param
-        self._var_list = var_list
-        self._variables = model.parameter()
-        self._max_var = self._variables[self._max_idx]
-        self._current_list = model.current_list()
-        self._sensitivity = sensitivity
-        self._dt = 0.5  # ms
-
-    def n_parameters(self):
-        return len(self.parameters)
+        super(NormalisedNaiveS1CurrentScore, self).__init__(
+                model, max_idx, base_param, var_list, sensitivity)
 
     def __call__(self, param, debug=False):
         # Time for simulation

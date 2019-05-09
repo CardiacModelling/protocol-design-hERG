@@ -25,7 +25,7 @@ except:
     print('Usage: python %s [str:info_id]' % os.path.basename(__file__))
     sys.exit()
 
-n_repeats = 5
+n_repeats = 1
 
 model = m.Model(info.model_file,
         variables=info.parameters,
@@ -57,7 +57,7 @@ for i_var, var in enumerate(info.parameters):
     best_s = np.inf
     best_p = None
     for _ in range(n_repeats):
-        score = m.NaiveAllS1Score(model,
+        score = m.NaiveAllS1CurrentScore(model,
                 max_idx=i_var,
                 base_param=info.base_param,
                 var_list=info.var_list,
