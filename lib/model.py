@@ -111,6 +111,8 @@ class Model(pints.ForwardModel):
         return len(self.parameters)
         
     def set_voltage_protocol(self, p):
+        # Assume protocol p is
+        # [step_1_voltage, step_1_duration, step_2_voltage, ...]
         protocol = myokit.Protocol()
         for i in range(len(p) // 2):
             protocol.add_step(p[2 * i], p[2 * i + 1])
