@@ -30,15 +30,19 @@ try:
     int(cell)
 except:
     print('Usage: python %s [str:protocol_dir] [str:info_id] [int:cell_id]' \
-            % os.path.basename(__file__) + ' --optional [N_repeats]')
+            % os.path.basename(__file__) + ' --optional [N_repeats] [--hard]')
     sys.exit()
 
 cov_seed = 101
 
-savedir = 'out/syn-%s' % (cov_seed)
+if '--hard' in sys.argv:
+    ishard = '-hard'
+else:
+    ishard = ''
+savedir = 'out/syn-%s-%s%s' % (cov_seed, info_id, ishard)
 if not os.path.isdir(savedir):
     os.makedirs(savedir)
-savetruedir = 'out/syn-%s-true' % (cov_seed)
+savetruedir = 'out/syn-%s-%s-true' % (cov_seed, info_id)
 if not os.path.isdir(savetruedir):
     os.makedirs(savetruedir)
 
@@ -56,7 +60,7 @@ transform_from_model_param = parametertransform.log_transform_from_model_param
 
 path2dir = '../../hERGRapidCharacterisation/'
 
-fakedatanoise = 11.0  # roughly what the recordings are, 10-12 pA
+fakedatanoise = 30.0  # roughly what the recordings are, 10-12 pA
 path2mean = path2dir + 'room-temperature-only/kylie-room-temperature/' \
             + 'last-solution_C5.txt'
 mean = np.loadtxt(path2mean)
@@ -86,6 +90,7 @@ print('Using seed: ', fit_seed)
 np.random.seed(fit_seed)
 
 parameters = np.random.multivariate_normal(mean, covariance)
+untransformparameters = transform_to_model_param(parameters)
 
 
 #
@@ -115,21 +120,40 @@ all_p = np.loadtxt(prt_file)
 # reshape it to [step_1_voltage, step_1_duration, ...]
 all_p = all_p.flatten()
 
-# Update protocol
-prt_mask = None  # TODO cover up part of the measurement
-model.set_voltage_protocol(all_p, prt_mask=prt_mask)
+# Time
 dt = 0.5
 times = np.arange(0, np.sum(all_p[1::2]), dt)  # ms
+
+# Update protocol
+if '--hard' not in sys.argv:
+    # fit full trace
+    prt_mask = None
+else:
+    # cover up part of the measurement
+    prt_mask = np.zeros(times.shape)
+    last_t = 0
+    for ii in range(len(all_p) // 6):
+        p = all_p[6 * ii:6 * (ii + 1)]
+        pre_time = (last_t + np.sum(p[1:-1:2]))# * 1e-3
+        end_time = (last_t + np.sum(p[1::2]))# * 1e-3
+        idx_i = int(pre_time / dt)
+        idx_f = int(end_time / dt)
+        prt_mask[idx_i:idx_f] = 1.0
+        last_t += np.sum(p[1::2])
+model.set_voltage_protocol(all_p, prt_mask=prt_mask)
 
 # generate from model + add noise
 data = model.simulate(parameters, times)
 data += np.random.normal(0, fakedatanoise, size=data.shape)
+# Estimate noise from start of data
+noise_sigma = np.std(data[:200])
+
 if useFilterCap:
     # Apply capacitance filter to data
     data = data * model.cap_filter(times)
-
-# Estimate noise from start of data
-noise_sigma = np.std(data[:200])
+if prt_mask is not None:
+    # Apply protocol mask
+    data = data * prt_mask
 
 
 #
@@ -162,7 +186,7 @@ params, logposteriors = [], []
 
 for i in range(N):
 
-    if i == 0:
+    if False:  # i == 0:  # maybe not for syn data
         x0 = transform_priorparams
     else:
         # Randomly pick a starting point
@@ -183,10 +207,10 @@ for i in range(N):
             p = transform_to_model_param(p)
             params.append(p)
             logposteriors.append(s)
-            print('Found solution:          Old parameters:' )
+            print('Found solution:          True parameters:' )
             for k, x in enumerate(p):
                 print(pints.strfloat(x) + '    ' + \
-                        pints.strfloat(priorparams[k]))
+                        pints.strfloat(untransformparameters[k]))
     except ValueError:
         import traceback
         traceback.print_exc()
@@ -209,24 +233,46 @@ print(logposteriors[-1])
 
 # Extract best 3
 obtained_logposterior0 = logposteriors[0]
-obtained_parameters = params[0]
+obtained_parameters0 = params[0]
+obtained_logposterior1 = logposteriors[1]
+obtained_parameters1 = params[1]
+obtained_logposterior2 = logposteriors[2]
+obtained_parameters2 = params[2]
 
 # Show results
-print('Found solution:          Old parameters:' )
+print('Found solution:          True parameters:' )
 # Store output
 with open('%s/solution-%s.txt' % (savedir, cell), 'w') as f:
-    for k, x in enumerate(obtained_parameters):
+    for k, x in enumerate(obtained_parameters0):
         print(pints.strfloat(x) + '    ' + \
-                pints.strfloat(priorparams[k]))
+                pints.strfloat(untransformparameters[k]))
+        f.write(pints.strfloat(x) + '\n')
+print('Found solution:          True parameters:' )
+# Store output
+with open('%s/solution-%s-2.txt' % (savedir, cell), 'w') as f:
+    for k, x in enumerate(obtained_parameters1):
+        print(pints.strfloat(x) + '    ' + \
+                pints.strfloat(untransformparameters[k]))
+        f.write(pints.strfloat(x) + '\n')
+print('Found solution:          True parameters:' )
+# Store output
+with open('%s/solution-%s-3.txt' % (savedir, cell), 'w') as f:
+    for k, x in enumerate(obtained_parameters2):
+        print(pints.strfloat(x) + '    ' + \
+                pints.strfloat(untransformparameters[k]))
         f.write(pints.strfloat(x) + '\n')
 
 fig, axes = plt.subplots(2, 1, sharex=True, figsize=(8, 6))
-sol = problem.evaluate(transform_from_model_param(obtained_parameters))
+sol0 = problem.evaluate(transform_from_model_param(obtained_parameters0))
+sol1 = problem.evaluate(transform_from_model_param(obtained_parameters1))
+sol2 = problem.evaluate(transform_from_model_param(obtained_parameters2))
 vol = model.voltage(times) * 1e3
 axes[0].plot(times, vol, c='#7f7f7f')
 axes[0].set_ylabel('Voltage [mV]')
 axes[1].plot(times, data, alpha=0.5, label='data')
-axes[1].plot(times, sol, label='found solution')
+axes[1].plot(times, sol0, label='found solution 0')
+axes[1].plot(times, sol1, label='found solution 1')
+axes[1].plot(times, sol2, label='found solution 2')
 axes[1].legend()
 axes[1].set_ylabel('Current [pA]')
 axes[1].set_xlabel('Time [s]')

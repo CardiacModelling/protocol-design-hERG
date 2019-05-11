@@ -110,14 +110,18 @@ class Model(pints.ForwardModel):
         # n_parameters() method for Pints
         return len(self.parameters)
         
-    def set_voltage_protocol(self, p):
+    def set_voltage_protocol(self, p, prt_mask=None):
         # Assume protocol p is
         # [step_1_voltage, step_1_duration, step_2_voltage, ...]
+        # prt_mask: (numpy) mask function that remove part of the measurement;
+        #           can be used as a capacitive filter, or to make the fitting
+        #           harder
         protocol = myokit.Protocol()
         for i in range(len(p) // 2):
             protocol.add_step(p[2 * i], p[2 * i + 1])
         self.simulation2.set_protocol(protocol)
         del(protocol)
+        self.prt_mask = prt_mask
 
     def current_list(self):
         return self._readout
@@ -157,15 +161,19 @@ class Model(pints.ForwardModel):
                 ).npview()
             del(p)
         except (myokit.SimulationError, myokit.SimulationCancelledError):
-            return float('inf')
+            # return float('inf')
+            return np.full(times.shape, float('inf'))
 
         # Return all lump currents
         if read_log is None:
             o = np.zeros(times.shape)
             for i in to_read:
                 o += d[i]
+            if self.prt_mask is not None:
+                o = o * self.prt_mask  # TODO, might need time info?
             return o
         else:
+            # If returning the whole dictionary, then cannot apply prt_mask
             return d
 
     def voltage(self, times, parameters=None):
