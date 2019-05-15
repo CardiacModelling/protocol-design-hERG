@@ -123,6 +123,16 @@ class Model(pints.ForwardModel):
         del(protocol)
         self.prt_mask = prt_mask
 
+    def set_fixed_form_voltage_protocol(self, v, t, prt_mask=None):
+        # v, t: voltage, time to be set in ms, mV
+        # prt_mask: (numpy) mask function that remove part of the measurement;
+        #           can be used as a capacitive filter, or to make the fitting
+        #           harder
+        self.simulation2.set_fixed_form_protocol(
+            t, v  # ms, mV
+        )
+        self.prt_mask = prt_mask
+
     def current_list(self):
         return self._readout
 

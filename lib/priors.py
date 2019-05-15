@@ -134,7 +134,7 @@ class HHIKrLogPrior(pints.LogPrior):
         return 0
 
     def _sample_partial(self, v):
-        for i in xrange(100):
+        for i in range(100):
             a = np.exp(np.random.uniform(
                 np.log(self.lower_alpha), np.log(self.upper_alpha)))
             b = np.random.uniform(self.lower_beta, self.upper_beta)
@@ -153,6 +153,120 @@ class HHIKrLogPrior(pints.LogPrior):
         # Sample backward rates
         p[3:5] = self._sample_partial(-self.vmin)
         p[7:9] = self._sample_partial(-self.vmin)
+
+        # Sample conductance
+        p[0] = np.random.uniform(
+            self.lower_conductance, self.upper_conductance)
+
+        p = self.inv_transform(p)
+
+        # Return
+        return p
+
+
+class WangIKrLogPrior(pints.LogPrior):
+    """
+    Unnormalised prior with constraint on the rate constants.
+    """
+    def __init__(self, transform, inv_transform):
+        super(HHIKrLogPrior, self).__init__()
+
+        # Give it a big bound...
+        self.lower_conductance = 1e2 * 1e-3  # pA/mV
+        self.upper_conductance = 5e5 * 1e-3  # pA/mV
+
+        # change unit...
+        self.lower_alpha = 1e-7              # Kylie: 1e-7
+        self.upper_alpha = 1e3               # Kylie: 1e3
+        self.lower_beta  = 1e-7              # Kylie: 1e-7
+        self.upper_beta  = 0.4               # Kylie: 0.4
+
+        self.rmin = 1.67e-5# * 1e3
+        self.rmax = 1000# * 1e3
+
+        self.vmin = -120# * 1e-3
+        self.vmax =  60# * 1e-3
+
+
+        self.lower = np.array(
+            [self.lower_conductance] + 
+            [self.lower_alpha,
+             self.lower_beta] * 6 + 
+            [self.rmin] * 2
+            )
+        self.upper = np.array(
+            [self.upper_conductance] +
+            [self.upper_alpha,
+            self.upper_beta] * 6 +
+            [self.rmax] * 2
+            )
+
+        self.minf = -float('inf')
+
+        self.transform = transform
+        self.inv_transform = inv_transform
+
+    def n_parameters(self):
+        return 14 + 1
+
+    def __call__(self, parameters):
+
+        debug = False
+        parameters = self.transform(parameters)
+
+        # Check parameter boundaries
+        if np.any(parameters < self.lower):
+            if debug: print('Lower')
+            return self.minf
+        if np.any(parameters > self.upper):
+            if debug: print('Upper')
+            return self.minf
+
+        # Check rate constant boundaries
+        g, p1, p2, p3, p4, p5, p6, p7, p8 = parameters[:]
+
+        for i in range(3):  # 3 pairs of rate constants in the form A*exp(B*V)
+            j = 1 + i * 4
+            # Check forward rates
+            r = p[j] * np.exp(p[j + 1] * self.vmax)
+            if np.any(r < self.rmin) or np.any(r > self.rmax):
+                if debug: print('r%s' % 2 * i - 1)
+                return self.minf
+
+            # Check backward rates
+            r = p[j + 2] * np.exp(-p[j + 3] * self.vmin)
+            if np.any(r < self.rmin) or np.any(r > self.rmax):
+                if debug: print('r%s' % 2 * (i + 1))
+                return self.minf
+
+        return 0
+
+    def _sample_partial(self, v):
+        for i in range(100):
+            a = np.exp(np.random.uniform(
+                np.log(self.lower_alpha), np.log(self.upper_alpha)))
+            b = np.random.uniform(self.lower_beta, self.upper_beta)
+            r = a * np.exp(b * v)
+            if r >= self.rmin and r <= self.rmax:
+                return a, b
+        raise ValueError('Too many iterations')
+
+    def sample(self):
+        p = np.zeros(self.n_parameters())
+
+        # Sample forward rates
+        p[1:3] = self._sample_partial(self.vmax)
+        p[5:7] = self._sample_partial(self.vmax)
+        p[9:11] = self._sample_partial(self.vmax)
+
+        # Sample backward rates
+        p[3:5] = self._sample_partial(-self.vmin)
+        p[7:9] = self._sample_partial(-self.vmin)
+        p[11:13] = self._sample_partial(-self.vmin)
+
+        # rates
+        p[13] = np.random.uniform(self.rmin, self.rmax)
+        p[14] = np.random.uniform(self.rmin, self.rmax)
 
         # Sample conductance
         p[0] = np.random.uniform(
