@@ -69,6 +69,7 @@ protocol = np.loadtxt('protocol-time-series/protocol-' + prt_id + '.csv',
         delimiter=',', skiprows=1) # headers
 skiptime = int((times[1] - times[0]) / (protocol[1, 0] - protocol[0, 0]))
 protocol = protocol[::skiptime, 1]
+protocol = protocol[:len(times)]
 assert(len(protocol) == len(times))
 
 
@@ -149,10 +150,10 @@ for i in range(N):
             p = transform_to_model_param(p)
             params.append(p)
             logposteriors.append(s)
-            print('Found solution:          True parameters:' )
+            print('Found solution:          Old parameters:' )
             for k, x in enumerate(p):
                 print(pints.strfloat(x) + '    ' + \
-                        pints.strfloat(untransformparameters[k]))
+                        pints.strfloat(info.base_param[k]))
     except ValueError:
         import traceback
         traceback.print_exc()
@@ -182,29 +183,29 @@ obtained_logposterior2 = logposteriors[2]
 obtained_parameters2 = params[2]
 
 # Show results
-print('Found solution:          True parameters:' )
+print('Found solution:          Old parameters:' )
 # Store output
 with open('%s/solution-%s-%s-%s.txt' % (savedir, exp_id, cell, fit_seed), 
             'w') as f:
     for k, x in enumerate(obtained_parameters0):
         print(pints.strfloat(x) + '    ' + \
-                pints.strfloat(untransformparameters[k]))
+                pints.strfloat(info.base_param[k]))
         f.write(pints.strfloat(x) + '\n')
-print('Found solution:          True parameters:' )
+print('Found solution:          Old parameters:' )
 # Store output
 with open('%s/solution-%s-%s-%s-2.txt' % (savedir, exp_id, cell, fit_seed), 
             'w') as f:
     for k, x in enumerate(obtained_parameters1):
         print(pints.strfloat(x) + '    ' + \
-                pints.strfloat(untransformparameters[k]))
+                pints.strfloat(info.base_param[k]))
         f.write(pints.strfloat(x) + '\n')
-print('Found solution:          True parameters:' )
+print('Found solution:          Old parameters:' )
 # Store output
 with open('%s/solution-%s-%s-%s-3.txt' % (savedir, exp_id, cell, fit_seed), 
             'w') as f:
     for k, x in enumerate(obtained_parameters2):
         print(pints.strfloat(x) + '    ' + \
-                pints.strfloat(untransformparameters[k]))
+                pints.strfloat(info.base_param[k]))
         f.write(pints.strfloat(x) + '\n')
 
 fig, axes = plt.subplots(2, 1, sharex=True, figsize=(8, 6))
