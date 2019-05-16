@@ -49,6 +49,11 @@ ions_conc = {
     'potassium.Ko': 4,
     }  # mM
 
+# Prior
+import sys
+sys.path.append('../../lib/')  # where priors module is
+from priors import HHIKrLogPrior as LogPrior
+
 # Temperature of the experiment
 temperature = 24.0  # oC
 

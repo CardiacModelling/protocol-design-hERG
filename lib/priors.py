@@ -169,7 +169,7 @@ class WangIKrLogPrior(pints.LogPrior):
     Unnormalised prior with constraint on the rate constants.
     """
     def __init__(self, transform, inv_transform):
-        super(HHIKrLogPrior, self).__init__()
+        super(WangIKrLogPrior, self).__init__()
 
         # Give it a big bound...
         self.lower_conductance = 1e2 * 1e-3  # pA/mV
@@ -222,19 +222,16 @@ class WangIKrLogPrior(pints.LogPrior):
             if debug: print('Upper')
             return self.minf
 
-        # Check rate constant boundaries
-        g, p1, p2, p3, p4, p5, p6, p7, p8 = parameters[:]
-
         for i in range(3):  # 3 pairs of rate constants in the form A*exp(B*V)
             j = 1 + i * 4
             # Check forward rates
-            r = p[j] * np.exp(p[j + 1] * self.vmax)
+            r = parameters[j] * np.exp(parameters[j + 1] * self.vmax)
             if np.any(r < self.rmin) or np.any(r > self.rmax):
                 if debug: print('r%s' % 2 * i - 1)
                 return self.minf
 
             # Check backward rates
-            r = p[j + 2] * np.exp(-p[j + 3] * self.vmin)
+            r = parameters[j + 2] * np.exp(-parameters[j + 3] * self.vmin)
             if np.any(r < self.rmin) or np.any(r > self.rmax):
                 if debug: print('r%s' % 2 * (i + 1))
                 return self.minf

@@ -11,7 +11,6 @@ import pints
 
 import model as m
 import parametertransform
-from priors import HHIKrLogPrior as LogPrior
 
 """
 Run fit for single experiment-synthetic data study
@@ -106,7 +105,7 @@ if prt_mask is not None:
 # Create Pints stuffs
 problem = pints.SingleOutputProblem(model, times, data)
 loglikelihood = pints.KnownNoiseLogLikelihood(problem, noise_sigma)
-logprior = LogPrior(transform_to_model_param,
+logprior = info.LogPrior(transform_to_model_param,
                     transform_from_model_param)
 logposterior = pints.LogPosterior(loglikelihood, logprior)
 
@@ -129,7 +128,7 @@ params, logposteriors = [], []
 
 for i in range(N):
 
-    if False:  # i == 0:  # maybe not for syn data
+    if i == 0:
         x0 = transform_priorparams
     else:
         # Randomly pick a starting point
