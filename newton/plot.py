@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 expid = 'newtonrun1'
 prtids = ['staircaseramp', 'sis', 'hh3step', 'wang3step']
 cell = 'A13'
-infoid = 'hh_ikr_rt'
+infoid = 'wang_ikr_rt'
 seed = '542811797'
 markers = ['o', 's', '^', 'd']
 
@@ -21,10 +21,11 @@ for i_prt, prtid in enumerate(prtids):
     folder = './out/' + infoid + '-' + prtid
     for i in range(3):
         if i == 0:
-            p = np.loadtxt('%s/solution-newtonrun1-A03-542811797.txt' % folder)
+            p = np.loadtxt('%s/solution-newtonrun1-%s-542811797.txt' \
+                    % (folder, cell))
         else:
-            p = np.loadtxt('%s/solution-newtonrun1-A03-542811797-%s.txt' \
-                    % (folder, i + 1))
+            p = np.loadtxt('%s/solution-newtonrun1-%s-542811797-%s.txt' \
+                    % (folder, cell, i + 1))
         plt.plot(range(len(p)), np.log10(p), ls='', marker=markers[i_prt],
                 c='C' + str(i_prt), label='__nolegend__' if i else prtid)
 
