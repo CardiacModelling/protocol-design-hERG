@@ -21,7 +21,7 @@ Run fit for single experiment-synthetic data study
 # Get all input variables
 import importlib
 sys.path.append('./in')  # assume info files are in ./in
-sys.path.append('../optimise/in')  # assume info files are in ./in
+sys.path.append('../optimise-localsensitivity/in')
 try:
     prt_file = sys.argv[1]
     info_id = sys.argv[2]

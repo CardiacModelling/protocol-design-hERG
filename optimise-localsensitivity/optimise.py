@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import pints
 
 import model as m
+import score_localsensitivity as s
 
 savedir = './out'
 if not os.path.isdir(savedir):
@@ -57,7 +58,7 @@ for i_var, var in enumerate(info.parameters):
     best_s = np.inf
     best_p = None
     for _ in range(n_repeats):
-        score = m.NaiveAllS1CurrentScore(model,
+        score = s.NaiveAllS1CurrentScore(model,
                 max_idx=i_var,
                 base_param=info.base_param,
                 var_list=info.var_list,
@@ -83,9 +84,9 @@ for i_var, var in enumerate(info.parameters):
         # Run optimisation
         try:
             with np.errstate(all='ignore'): # Tell numpy not to issue warnings
-                p, s = opt.run()
-                if s < best_s:
-                    best_s = s
+                p, b = opt.run()
+                if b < best_s:
+                    best_s = b
                     best_p = p
         except ValueError:
             import traceback
@@ -93,7 +94,7 @@ for i_var, var in enumerate(info.parameters):
 
         print('var: ', var)
         print('found: ', p)
-        print('score: ', s)
+        print('score: ', b)
         assert(s == score(p))
     
     # Save best result
