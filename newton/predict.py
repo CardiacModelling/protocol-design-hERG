@@ -21,7 +21,7 @@ import re
 # Get all input variables
 import importlib
 sys.path.append('./in')  # assume info files are in ./in
-sys.path.append('../optimise/in')  # assume info files are in ./in
+sys.path.append('../optimise-localsensitivity/in')
 try:
     prt_id = sys.argv[1]
     exp_id = sys.argv[2]

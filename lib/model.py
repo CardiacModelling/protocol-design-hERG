@@ -104,11 +104,22 @@ class Model(pints.ForwardModel):
         self._model = model
 
         self.transform = transform
-        self.init_state = self.simulation1.state()
+        self.default_init_state = self.simulation1.state()
+        self.init_state = self.default_init_state
+        self.continue_simulate(False)
 
     def n_parameters(self):
         # n_parameters() method for Pints
         return len(self.parameters)
+
+    def set_init_state(self, v):
+        self.init_state = v
+
+    def current_state(self):
+        return self.simulation2.state()
+
+    def continue_simulate(self, v=False):
+        self._continue_simulate = v
         
     def set_voltage_protocol(self, p, prt_mask=None):
         # Assume protocol p is
@@ -148,10 +159,14 @@ class Model(pints.ForwardModel):
             self.simulation2.set_constant(name, parameters[i])
 
         # Reset to ensure each simulate has same init condition
-        self.simulation1.reset()
         self.simulation2.reset()
-        self.simulation1.set_state(self.init_state)
         self.simulation2.set_state(self.init_state)
+
+        if not self._continue_simulate:
+            self.simulation1.reset()
+            self.simulation1.set_state(self.init_state)
+            self.simulation1.pre(100e3)
+            self.simulation2.set_state(self.simulation1.state())
         
         if read_log is None:
             to_read = self._readout
@@ -160,8 +175,6 @@ class Model(pints.ForwardModel):
 
         # Run!
         try:
-            self.simulation1.pre(100e3)
-            self.simulation2.set_state(self.simulation1.state())
             p = Timeout(self.max_evaluation_time)
             d = self.simulation2.run(np.max(times)+0.02e3,
                 log_times = times,
