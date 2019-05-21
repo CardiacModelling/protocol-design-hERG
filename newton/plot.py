@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 expid = 'newtonrun1'
 prtids = ['staircaseramp', 'sis', 'hh3step', 'wang3step']
 cell = 'A13'
-infoid = 'wang_ikr_rt'
+infoid = 'hh_ikr_rt'
 seed = '542811797'
 markers = ['o', 's', '^', 'd']
 
@@ -29,6 +29,7 @@ for i_prt, prtid in enumerate(prtids):
         plt.plot(range(len(p)), np.log10(p), ls='', marker=markers[i_prt],
                 c='C' + str(i_prt), label='__nolegend__' if i else prtid)
 
+plt.legend()
 plt.title('Model: %s; Exp: %s; Cell: %s' % (infoid, expid, cell))
 plt.ylabel(r'$\log_{10}$(value)')
 plt.xticks(range(len(p)), labels)
