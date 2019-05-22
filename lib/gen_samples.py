@@ -6,8 +6,6 @@ This generate samples based on the parameters values from `prior-parameters`.
 
 def sample(boundaries, n=1000):
     # return boundaries.sample(n)
-    import sys
-    sys.path.append('../lib/')
     import lhs
 
     unit_samples = lhs.lhs(
