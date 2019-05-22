@@ -72,12 +72,32 @@ from priors import WangIKrLogPrior as LogPrior
 import glob
 prior_parameters = []
 prior_parameters.append(base_param)
+idx_map_dom2sanmitra = np.array(
+        [11, 12, 13, 14, 1, 2, 3, 4, 7, 8, 9, 10, 5, 6]) - 1  # Python idx
+""" Sanmitra's model-16 parameters -> Dom's Wang-1997-model parameters
+a1 = k51
+1,2 -> 11,12
+b1 = k15
+3,4 -> 13,14
+a2 = k12
+13 -> 5
+b2 = k21
+14 -> 6
+a3 = k23
+5,6 -> 1,2
+b3 = k32
+7,8 -> 3,4
+a4 = k34
+9,10 -> 7,8
+b4 = k43
+11,12 -> 9,10
+"""
 for f in glob.glob(
         './%s-prior-parameters/cell-*-fit-*-parameters-[0-1][0-9].txt' \
         % save_name):
     p = np.loadtxt(f)
     g = np.mean(p[-3:])  # Just how Dom arranged it, last 3 are conductance...
-    p = p[:-3]
+    p = p[:-3][idx_map_dom2sanmitra]  # Map Dom's parameters to Sanmitra's ones
     prior_parameters.append(np.append(g, p))
 
 # Temperature of the experiment

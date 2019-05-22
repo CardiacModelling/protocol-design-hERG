@@ -23,6 +23,8 @@ n_samples = 100
 # Get all input variables
 import importlib
 sys.path.append('./in')  # assume info files are in ./in
+info_id = sys.argv[1]
+info = importlib.import_module(info_id)
 try:
     info_id = sys.argv[1]
     info = importlib.import_module(info_id)
