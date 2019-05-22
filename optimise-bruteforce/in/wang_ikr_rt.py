@@ -59,14 +59,26 @@ base_param = np.array([ # Beattie et al. 2018 cell5
 
 # Clamp ion; assumption in voltage clamp
 ions_conc = {
-    'potassium.Ki': 110,
-    'potassium.Ko': 4,
+    'potassium.Ki': 120,
+    'potassium.Ko': 5,
     }  # mM
 
 # Prior
 import sys
 sys.path.append('../../lib/')  # where priors module is
 from priors import WangIKrLogPrior as LogPrior
+
+# Prior parameters
+import glob
+prior_parameters = []
+prior_parameters.append(base_param)
+for f in glob.glob(
+        './%s-prior-parameters/cell-*-fit-*-parameters-[0-1][0-9].txt' \
+        % save_name):
+    p = np.loadtxt(f)
+    g = np.mean(p[-3:])  # Just how Dom arranged it, last 3 are conductance...
+    p = p[:-3]
+    prior_parameters.append(np.append(g, p))
 
 # Temperature of the experiment
 temperature = 24.0  # oC

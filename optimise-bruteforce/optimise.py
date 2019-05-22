@@ -60,13 +60,11 @@ test_t = np.arange(0, np.sum(test_prt[1::2]), 0.5)
 model.set_voltage_protocol(test_prt)
 
 # Generate parameter samples
-prior_parameters = []  # only kinetics
-for f in glob.glob('prior-parameters/%s-*/solution-*.txt' % info.save_name):
-    p = np.loadtxt(f)
-    p[0] = 1  # don't care too much about conductance; hopefully.
-    prior_parameters.append(p[1:])
-    plt.plot(test_t, model.simulate(p, test_t), c='C0' if 'A03' in f else 'C1')
-plt.savefig('test')
+prior_parameters = np.asarray(info.prior_parameters)[:, 1:]  # only kinetics
+for p in prior_parameters:
+    p = np.append(1, p)
+    plt.plot(test_t, model.simulate(p, test_t))
+plt.savefig('%s/test-prior_parameters-%s' % (savedir, info.save_name))
 plt.close()
 
 # TODO transform to log space?
@@ -122,21 +120,28 @@ for i_set in range(15): # TODO
         score.set_init_state(current_states)
 
     if i_set % 2:
+        
         # Set random voltage and optimise duration
         sampled_param = full_boundaries.sample(1)[0]
+        set_duration = None
         set_voltages = sampled_param[::2]
         x0 = sampled_param[1::2]
         score.set_duration(None)
         score.set_voltage(set_voltages)
         boundaries = pints.RectangularBoundaries(lower[1::2], upper[1::2])
+        print('Optimising duration at voltage:', set_voltages)
+        print('x0 (duration)', x0)
     else:
         # Set random duration and optimise voltage
         sampled_param = full_boundaries.sample(1)[0]
+        set_voltages = None
         set_duration = sampled_param[1::2]
         x0 = sampled_param[::2]
         score.set_voltage(None)
         score.set_duration(set_duration)
         boundaries = pints.RectangularBoundaries(lower[::2], upper[::2])
+        print('Optimising voltage at duration:', set_duration)
+        print('x0 (voltage)', x0)
 
     # Try it with x0
     print('Score at x0:', score(x0))
@@ -156,15 +161,26 @@ for i_set in range(15): # TODO
         with np.errstate(all='ignore'):
             # Tell numpy not to issue warnings
             p, s = opt.run()
-            params.append(p)
+            out = np.zeros(score._n_parameters)
+            if set_voltages is None:
+                out[1::2] = set_duration
+                out[::2] = p[:]
+            elif set_duration is None:
+                out[::2] = set_voltages
+                out[1::2] = p[:]
+            elif set_voltages is not None and set_duration is not None:
+                out[:] = p[:]
+            else:
+                raise RuntimeError('Both voltage and duration are fixed.')
+            params.append(out)
             scores.append(s)
-            print('Found solution:          Sine parameters:' )
+            print('Found solution:' )
             for k, x in enumerate(p):
-                print(pints.strfloat(x) + '    ' + \
-                        pints.strfloat(x0[k]))
+                print(pints.strfloat(x))
     except ValueError:
         import traceback
         traceback.print_exc()
+        raise RuntimeError('Not here...')
 
     # Get current state
     current_states = score(p, get_state=True)
