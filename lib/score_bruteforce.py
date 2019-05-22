@@ -22,36 +22,52 @@ class MaxParamDiffScore(pints.ErrorMeasure):
             's1v', 's1t', 's2v', 's2t', 's3v', 's3t'
         ]
     
-    def __init__(self, model, parameters):
+    def __init__(self, model, parameter_samples):
         """
         # model: model in this module.
-        # parameters: a list of model's parameters that this protocol
+        # parameter_samples: a list of model's parameters that this protocol
         #             optimisation based on.
         """
         super(MaxParamDiffScore, self).__init__()
 
         self._model = model
-        self._parameters = parameters
-        self._n_parameters = len(self._parameters)
-        self._n_evaluations = 0.5 * (self._n_parameters ** 2)
+        self._parameter_samples = parameter_samples
+        self._n_param_samples = len(self._parameter_samples)
+        self._n_evaluations = 0.5 * (self._n_param_samples ** 2)
 
         self._dt = 0.5  # ms
+
+        self._n_parameters = len(self.parameters)
+        self._set_voltage = None
+        self._set_duration = None
 
         self.set_voltage(None)
         self.set_duration(None)
         self.set_init_state(None)
 
     def n_parameters(self):
-        return len(self.parameters)
+        return self._n_working_parameters
 
     def _diff(self, t1, t2):
         return np.mean((t1 - t2)**2)
 
     def set_voltage(self, v=None):
         self._set_voltage = v
+        if v is None and self._set_duration is None:
+            self._n_working_parameters = self._n_parameters
+        elif v is not None and self._set_duration is None:
+            self._n_working_parameters = int(self._n_parameters / 2)
+        else:
+            raise ValueError('Both voltage and duration are fixed.')
 
     def set_duration(self, v=None):
         self._set_duration = v
+        if v is None and self._set_voltage is None:
+            self._n_working_parameters = self._n_parameters
+        elif v is not None and self._set_voltage is None:
+            self._n_working_parameters = int(self._n_parameters / 2)
+        else:
+            raise ValueError('Both voltage and duration are fixed.')
 
     def set_init_state(self, v=None):
         self._set_init_state = v
@@ -86,7 +102,7 @@ class MaxParamDiffScore(pints.ErrorMeasure):
         if get_state:
             states = []
 
-        for i, p in enumerate(self._parameters):
+        for i, p in enumerate(self._parameter_samples):
             if self._set_init_state is not None:
                 self._model.set_init_state(self._set_init_state[i])
             sims.append(self._model.simulate(p, times))
@@ -100,9 +116,9 @@ class MaxParamDiffScore(pints.ErrorMeasure):
 
         # Compute differences
         total_diff = 0
-        for i1 in range(self._n_parameters):
+        for i1 in range(self._n_param_samples):
             t1 = sims[i1]
-            for i2 in range(i1 + 1, self._n_parameters):
+            for i2 in range(i1 + 1, self._n_param_samples):
                 t2 = sims[i2]
                 total_diff += self._diff(t1, t2)
 

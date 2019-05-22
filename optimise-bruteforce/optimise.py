@@ -27,11 +27,16 @@ try:
     info_id = sys.argv[1]
     info = importlib.import_module(info_id)
 except:
-    print('Usage: python %s [str:info_id]' \
+    print('Usage: python %s [str:info_id] --optional [int:seed]' \
             % os.path.basename(__file__))
     sys.exit()
 
-n_repeats = 10
+try:
+    seed_id = int(sys.argv[2])
+except:
+    seed_id = 101
+np.random.seed(seed_id)
+print('Seed ID: ', seed_id)
 
 model = m.Model(info.model_file,
         variables=info.parameters,
@@ -47,7 +52,7 @@ lower = [-120, 50,
 upper = [60, 1e3,
         60, 1e3,
         60, 1e3,]
-boundaries = pints.RectangularBoundaries(lower, upper)
+full_boundaries = pints.RectangularBoundaries(lower, upper)
 
 # Testing samples protocol
 test_prt = [-80, 200, 20, 500, -40, 500, -80, 200]
@@ -70,6 +75,7 @@ p_upper = np.amax(prior_parameters, axis=0)
 p_bound = pints.RectangularBoundaries(p_lower, p_upper)
 
 parameter_samples = gen_samples.sample(p_bound, n=n_samples * 10)
+parameter_samples = np.row_stack((prior_parameters, parameter_samples))
 # Add back (unity) conductance
 parameter_samples = np.column_stack((np.ones(len(parameter_samples)),
                                      parameter_samples))
@@ -92,8 +98,9 @@ while len(tested_parameter_samples) < n_samples:
         raise RuntimeError('Could not generate samples...') 
 
 score = s.MaxParamDiffScore(model,
-        parameters=tested_parameter_samples,
+        parameter_samples=tested_parameter_samples,
         )
+score.set_init_state(None)
 
 x0 = [-80, 200, 20, 500, -40, 500]  # a pharma like protocol
 
@@ -102,19 +109,35 @@ if True:
     print('Single score evaluation time: %s s' \
         % (timeit.timeit(lambda: score(x0), number=10) / 10.))
 
-sys.exit()
-
 # Control fitting seed --> OR DONT
-# fit_seed = np.random.randint(0, 2**30)
-fit_seed = 542811797
+fit_seed = np.random.randint(0, 2**30)
 print('Fit seed: ', fit_seed)
 np.random.seed(fit_seed)
 
 params, scores = [], []
 
-for _ in range(n_repeats):
+for i_set in range(15): # TODO
+    if i_set > 0:
+        # Continue from previous simulation
+        score.set_init_state(current_states)
 
-    for _ in range(15): # TODO
+    if i_set % 2:
+        # Set random voltage and optimise duration
+        sampled_param = full_boundaries.sample(1)[0]
+        set_voltages = sampled_param[::2]
+        x0 = sampled_param[1::2]
+        score.set_duration(None)
+        score.set_voltage(set_voltages)
+        boundaries = pints.RectangularBoundaries(lower[1::2], upper[1::2])
+    else:
+        # Set random duration and optimise voltage
+        sampled_param = full_boundaries.sample(1)[0]
+        set_duration = sampled_param[1::2]
+        x0 = sampled_param[::2]
+        score.set_voltage(None)
+        score.set_duration(set_duration)
+        boundaries = pints.RectangularBoundaries(lower[::2], upper[::2])
+
     # Try it with x0
     print('Score at x0:', score(x0))
     for _ in range(10):
@@ -143,37 +166,23 @@ for _ in range(n_repeats):
         import traceback
         traceback.print_exc()
 
-# Order from best to worst
-order = np.argsort(scores)[::]  # (use [::-1] for LL)
-scores = np.asarray(scores)[order]
-params = np.asarray(params)[order]
+    # Get current state
+    current_states = score(p, get_state=True)
 
-# Show results
-bestn = min(3, n_repeats)
-print('Best %d scores:' % bestn)
-for i in range(bestn):
-    print(scores[i])
-print('Mean & std of logposterior:')
-print(np.mean(scores))
-print(np.std(scores))
-print('Worst logposterior:')
-print(scores[-1])
-
-# Extract best
-obtained_logposterior0 = scores[0]
-obtained_parameters0 = params[0]
+# Add them all up
+all_p = np.array(params).reshape(len(params) * len(params[0]))
+print('Final prt: ', all_p)
+print('Total time: ', np.sum(all_p[1::2]))
 
 #
 # Store result
 #
 with open('%s/opt-prt-%s.txt' % (savedir, info.save_name), 'w') as f:
-    f.write('# Amplitude [mV]\tPeriod [ms]\tOffset [1]\n')
-    for i in range(len(obtained_parameters0) // 3):
-        f.write(pints.strfloat(obtained_parameters0[3 * i]) \
+    f.write('# Voltage [mV]\tDuration [ms]\n')
+    for i in range(len(all_p) // 2):
+        f.write(pints.strfloat(all_p[2 * i]) \
                 + '\t' \
-                + pints.strfloat(obtained_parameters0[3 * i + 1]) \
-                + '\t' \
-                + pints.strfloat(obtained_parameters0[3 * i + 2]) \
+                + pints.strfloat(all_p[2 * i + 1]) \
                 + '\n' \
                 )
 
