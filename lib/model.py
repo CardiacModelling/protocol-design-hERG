@@ -1,7 +1,4 @@
 from __future__ import print_function
-import os
-import sys
-sys.path.append('../lib')
 import numpy as np
 
 import pints

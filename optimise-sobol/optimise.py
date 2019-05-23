@@ -11,14 +11,14 @@ import pints
 import glob
 
 import model as m
-import score_bruteforce as s
+import score_sobol as s
 import gen_samples
 
 savedir = './out'
 if not os.path.isdir(savedir):
     os.makedirs(savedir)
 
-n_samples = 100
+n_samples = 100  # giving n_samples * (n_parameters + 2) number of evaluations
 
 # Get all input variables
 import importlib
@@ -60,43 +60,50 @@ test_t = np.arange(0, np.sum(test_prt[1::2]), 0.5)
 model.set_voltage_protocol(test_prt)
 
 # Generate parameter samples
-prior_parameters = np.asarray(info.prior_parameters)[:, 1:]  # only kinetics
+prior_parameters = np.asarray(info.prior_parameters)
 for p in prior_parameters:
-    p = np.append(1, p)
-    plt.plot(test_t, model.simulate(p, test_t))
+    test_p = np.append(1, p[1:])
+    plt.plot(test_t, model.simulate(test_p, test_t))
 plt.savefig('%s/test-prior_parameters-%s' % (savedir, info.save_name))
 plt.close()
 
 # TODO transform to log space?
 p_lower = np.amin(prior_parameters, axis=0)
 p_upper = np.amax(prior_parameters, axis=0)
-p_bound = pints.RectangularBoundaries(p_lower, p_upper)
-
-parameter_samples = gen_samples.sample(p_bound, n=n_samples * 10)
-parameter_samples = np.row_stack((prior_parameters, parameter_samples))
-# Add back (unity) conductance
-parameter_samples = np.column_stack((np.ones(len(parameter_samples)),
-                                     parameter_samples))
 
 # Test samples
-tested_parameter_samples = []
-i = 0
-model.set_voltage_protocol(test_prt)
-from parametertransform import donothing
-prior = info.LogPrior(donothing, donothing)
-while len(tested_parameter_samples) < n_samples:
-    if not np.isfinite(prior(parameter_samples[i])):
-        print('Parameters outside bound...')
-    elif not np.all(np.isfinite(model.simulate(parameter_samples[i], test_t))):
-        print('Parameters not simulable...')
-    else:
-        tested_parameter_samples.append(parameter_samples[i])
-    i += 1
-    if i >= n_samples * 10:
-        raise RuntimeError('Could not generate samples...') 
+def test_function(model, p):
+    # Test if function
+    from parametertransform import donothing
+    test_prt = [-80, 200, 20, 500, -40, 500, -80, 200]
+    test_t = np.arange(0, np.sum(test_prt[1::2]), 0.5)
+    model.set_voltage_protocol(test_prt)
+    prior = info.LogPrior(donothing, donothing)
 
-score = s.MaxParamDiffScore(model,
-        parameter_samples=tested_parameter_samples,
+    out = []
+    for p_i in p:
+        if not np.isfinite(prior(p_i)):
+            # print('Parameters outside bound...')
+            out.append(False)
+        elif not np.all(np.isfinite(model.simulate(p_i, test_t))):
+            # print('Parameters not simulable...')
+            out.append(False)
+        else:
+            out.append(True)
+    return out
+
+# Problem setting for package SALib
+salib_problem = {
+    'num_vars': model.n_parameters(),
+    'names': ['p%s' % (i) for i in range(model.n_parameters())],
+    'bounds': np.array([p_lower, p_upper]).T,
+}
+
+score = s.MaxSobolScore(model,
+        problem=salib_problem,
+        max_idx=0,  # to be iterated through
+        test_func=test_function,
+        n=n_samples,
         )
 score.set_init_state(None)
 
@@ -114,34 +121,16 @@ np.random.seed(fit_seed)
 
 params, scores = [], []
 
-for i_set in range(15): # TODO
+for i_set in range(model.n_parameters()):
     if i_set > 0:
         # Continue from previous simulation
         score.set_init_state(current_states)
-
-    if i_set % 2:
-        
-        # Set random voltage and optimise duration
-        sampled_param = full_boundaries.sample(1)[0]
-        set_duration = None
-        set_voltages = sampled_param[::2]
-        x0 = sampled_param[1::2]
-        score.set_duration(None)
-        score.set_voltage(set_voltages)
-        boundaries = pints.RectangularBoundaries(lower[1::2], upper[1::2])
-        print('Optimising duration at voltage:', set_voltages)
-        print('x0 (duration)', x0)
     else:
-        # Set random duration and optimise voltage
-        sampled_param = full_boundaries.sample(1)[0]
-        set_voltages = None
-        set_duration = sampled_param[1::2]
-        x0 = sampled_param[::2]
-        score.set_voltage(None)
-        score.set_duration(set_duration)
-        boundaries = pints.RectangularBoundaries(lower[::2], upper[::2])
-        print('Optimising voltage at duration:', set_duration)
-        print('x0 (voltage)', x0)
+        # Start from steady state
+        score.set_init_state(None)
+
+    # Set a different model parameter to be maximised
+    score.set_max_idx(i_set)
 
     # Try it with x0
     print('Score at x0:', score(x0))
@@ -161,18 +150,7 @@ for i_set in range(15): # TODO
         with np.errstate(all='ignore'):
             # Tell numpy not to issue warnings
             p, s = opt.run()
-            out = np.zeros(score._n_parameters)
-            if set_voltages is None:
-                out[1::2] = set_duration
-                out[::2] = p[:]
-            elif set_duration is None:
-                out[::2] = set_voltages
-                out[1::2] = p[:]
-            elif set_voltages is not None and set_duration is not None:
-                out[:] = p[:]
-            else:
-                raise RuntimeError('Both voltage and duration are fixed.')
-            params.append(out)
+            params.append(p)
             scores.append(s)
             print('Found solution:' )
             for k, x in enumerate(p):

@@ -1,7 +1,4 @@
 from __future__ import print_function
-import os
-import sys
-sys.path.append('../lib')
 import numpy as np
 
 import pints
@@ -91,9 +88,6 @@ class MaxParamDiffScore(pints.ErrorMeasure):
 
         # Time for simulation
         times = np.arange(0, np.sum(param[1::2]), self._dt)
-        pre_time = np.sum(param[1:-1:2])
-        idx_i = int(pre_time / self._dt)
-        idx_f = -1
         # Update protocol
         self._model.set_voltage_protocol(param)
 
