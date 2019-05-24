@@ -72,13 +72,16 @@ p_lower = np.amin(prior_parameters, axis=0)
 p_upper = np.amax(prior_parameters, axis=0)
 
 # Test samples
-def test_function(model, p):
+def test_function(model, p, samples=None):
     # Test if function
     from parametertransform import donothing
+    prior = info.LogPrior(donothing, donothing)
+    if samples is not None:
+        return prior.sample(samples)
+
     test_prt = [-80, 200, 20, 500, -40, 500, -80, 200]
     test_t = np.arange(0, np.sum(test_prt[1::2]), 0.5)
     model.set_voltage_protocol(test_prt)
-    prior = info.LogPrior(donothing, donothing)
 
     out = []
     for p_i in p:

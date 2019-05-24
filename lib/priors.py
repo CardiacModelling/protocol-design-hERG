@@ -143,25 +143,28 @@ class HHIKrLogPrior(pints.LogPrior):
                 return a, b
         raise ValueError('Too many iterations')
 
-    def sample(self):
-        p = np.zeros(9)
+    def sample(self, n=1):
+        out = np.zeros((n, self.n_parameters()))
+        
+        for i in range(n):
+            p = np.zeros(self.n_parameters())
 
-        # Sample forward rates
-        p[1:3] = self._sample_partial(self.vmax)
-        p[5:7] = self._sample_partial(self.vmax)
+            # Sample forward rates
+            p[1:3] = self._sample_partial(self.vmax)
+            p[5:7] = self._sample_partial(self.vmax)
 
-        # Sample backward rates
-        p[3:5] = self._sample_partial(-self.vmin)
-        p[7:9] = self._sample_partial(-self.vmin)
+            # Sample backward rates
+            p[3:5] = self._sample_partial(-self.vmin)
+            p[7:9] = self._sample_partial(-self.vmin)
 
-        # Sample conductance
-        p[0] = np.random.uniform(
-            self.lower_conductance, self.upper_conductance)
+            # Sample conductance
+            p[0] = np.random.uniform(
+                self.lower_conductance, self.upper_conductance)
 
-        p = self.inv_transform(p)
+            out[i, :] = self.inv_transform(p)
 
         # Return
-        return p
+        return out
 
 
 class WangIKrLogPrior(pints.LogPrior):
@@ -248,31 +251,34 @@ class WangIKrLogPrior(pints.LogPrior):
                 return a, b
         raise ValueError('Too many iterations')
 
-    def sample(self):
-        p = np.zeros(self.n_parameters())
+    def sample(self, n=1):
+        out = np.zeros((n, self.n_parameters()))
+        
+        for i in range(n):
+            p = np.zeros(self.n_parameters())
 
-        # Sample forward rates
-        p[1:3] = self._sample_partial(self.vmax)
-        p[5:7] = self._sample_partial(self.vmax)
-        p[9:11] = self._sample_partial(self.vmax)
+            # Sample forward rates
+            p[1:3] = self._sample_partial(self.vmax)
+            p[5:7] = self._sample_partial(self.vmax)
+            p[9:11] = self._sample_partial(self.vmax)
 
-        # Sample backward rates
-        p[3:5] = self._sample_partial(-self.vmin)
-        p[7:9] = self._sample_partial(-self.vmin)
-        p[11:13] = self._sample_partial(-self.vmin)
+            # Sample backward rates
+            p[3:5] = self._sample_partial(-self.vmin)
+            p[7:9] = self._sample_partial(-self.vmin)
+            p[11:13] = self._sample_partial(-self.vmin)
 
-        # rates
-        p[13] = np.random.uniform(self.rmin, self.rmax)
-        p[14] = np.random.uniform(self.rmin, self.rmax)
+            # rates
+            p[13] = np.random.uniform(self.rmin, self.rmax)
+            p[14] = np.random.uniform(self.rmin, self.rmax)
 
-        # Sample conductance
-        p[0] = np.random.uniform(
-            self.lower_conductance, self.upper_conductance)
+            # Sample conductance
+            p[0] = np.random.uniform(
+                self.lower_conductance, self.upper_conductance)
 
-        p = self.inv_transform(p)
+            out[i, :] = self.inv_transform(p)
 
         # Return
-        return p
+        return out
 
 
 #

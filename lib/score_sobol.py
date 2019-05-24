@@ -50,14 +50,37 @@ class MaxSobolScore(pints.ErrorMeasure):
                 calc_second_order=False)
         
         if test_func is not None:
-            self._tested_parameters = test_func(
-                    self._model,
-                    self._parameter_samples)
+            passed = test_func(self._model, self._parameter_samples)
             print('There are %s out of %s parameters passed the test.' \
-                    % (np.sum(self._tested_parameters),
-                        len(self._parameter_samples)))
-        else:
-            self._tested_parameters = None
+                    % (np.sum(passed), len(self._parameter_samples)))
+
+            if np.sum(passed) < len(self._parameter_samples):
+                target_parameter_samples = len(self._parameter_samples)
+                ratio = target_parameter_samples / np.sum(passed)
+                print('Resampling with %.2f times more samples.' % ratio)
+                self._parameter_samples = saltelli.sample(problem,
+                        int(ratio * n), calc_second_order=False)
+                passed = test_func(self._model, self._parameter_samples)
+
+                if np.sum(passed) / target_parameter_samples > 1.1:
+                    # Don't want to remove too much... will/might introduce
+                    # bias in the samples?!
+                    raise Exception('Wait...')
+
+                elif np.sum(passed) > target_parameter_samples:
+                    n_extra = np.sum(passed) - target_parameter_samples
+                    print('Randomly removing %s extra samples.' % n_extra)
+                    passed_samples = self._parameter_samples[passed]
+                    np.random.shuffle(passed_samples)
+                    self._parameter_samples = passed_samples[:-1 * n_extra]
+
+                elif np.sum(passed) < len(self._parameter_samples):
+                    n_missing = target_parameter_samples - np.sum(passed)
+                    print('Filling %s samples with uniformly sampled ' \
+                            % n_missing + 'parameters.')
+                    addition = test_func(None, None, samples=n_missing)
+                    self._parameter_samples = np.row_stack(
+                            (self._parameter_samples[passed], addition))
 
     def n_parameters(self):
         return self._n_parameters
@@ -87,14 +110,6 @@ class MaxSobolScore(pints.ErrorMeasure):
             states = []
 
         for i, p in enumerate(self._parameter_samples):
-            if self._tested_parameters is not None:
-                if self._tested_parameters[i]:
-                    pass
-                else:
-                    f_sims.append(0)
-                    if get_state:
-                        states.append(None)
-                    continue
             if self._set_init_state is not None:
                 self._model.set_init_state(self._set_init_state[i])
             # Only use a scaler measure of the simulation output

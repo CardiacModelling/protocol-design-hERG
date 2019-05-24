@@ -132,7 +132,7 @@ for i in range(N):
         x0 = transform_priorparams
     else:
         # Randomly pick a starting point
-        x0 = logprior.sample()
+        x0 = logprior.sample(1)[0]
     print('Starting point: ', x0)
 
     # Create optimiser
