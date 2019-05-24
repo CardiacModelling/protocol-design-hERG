@@ -52,7 +52,7 @@ lower = [-120, 50,
 upper = [60, 1e3,
         60, 1e3,
         60, 1e3,]
-full_boundaries = pints.RectangularBoundaries(lower, upper)
+boundaries = pints.RectangularBoundaries(lower, upper)
 
 # Testing samples protocol
 test_prt = [-80, 200, 20, 500, -40, 500, -80, 200]
