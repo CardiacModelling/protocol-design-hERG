@@ -41,6 +41,7 @@ class MaxParamDiffScore(pints.ErrorMeasure):
         self.set_voltage(None)
         self.set_duration(None)
         self.set_init_state(None)
+        self.set_continue_simulate(False)
 
     def n_parameters(self):
         return self._n_working_parameters
@@ -68,6 +69,9 @@ class MaxParamDiffScore(pints.ErrorMeasure):
 
     def set_init_state(self, v=None):
         self._set_init_state = v
+
+    def set_continue_simulate(self, v=False):
+        self._continue_simulate = v
 
     def __call__(self, param, get_state=False, debug=False):
 
@@ -99,6 +103,7 @@ class MaxParamDiffScore(pints.ErrorMeasure):
         for i, p in enumerate(self._parameter_samples):
             if self._set_init_state is not None:
                 self._model.set_init_state(self._set_init_state[i])
+                self._model.set_continue_simulate(self._continue_simulate)
             sims.append(self._model.simulate(p, times))
             if get_state:
                 states.append(self._model.current_state())

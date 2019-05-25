@@ -99,6 +99,7 @@ score = s.MaxParamDiffScore(model,
         parameter_samples=tested_parameter_samples,
         )
 score.set_init_state(None)
+score.set_continue_simulate(False)
 
 x0 = [-80, 200, 20, 500, -40, 500]  # a pharma like protocol
 
@@ -118,6 +119,11 @@ for i_set in range(15): # TODO
     if i_set > 0:
         # Continue from previous simulation
         score.set_init_state(current_states)
+        score.set_continue_simulate(False)
+    else:
+        # Start from steady state
+        score.set_init_state(None)
+        score.set_continue_simulate(False)
 
     if i_set % 2:
         
@@ -154,7 +160,8 @@ for i_set in range(15): # TODO
             boundaries=boundaries,
             method=pints.XNES)
     opt.set_max_iterations(None)
-    opt.set_parallel(True)
+    # opt.set_parallel(True)
+    opt.set_parallel(8)
 
     # Run optimisation
     try:

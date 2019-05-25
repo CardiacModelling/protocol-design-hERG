@@ -103,7 +103,7 @@ class Model(pints.ForwardModel):
         self.transform = transform
         self.default_init_state = self.simulation1.state()
         self.init_state = self.default_init_state
-        self.continue_simulate(False)
+        self.set_continue_simulate(False)
 
     def n_parameters(self):
         # n_parameters() method for Pints
@@ -115,7 +115,7 @@ class Model(pints.ForwardModel):
     def current_state(self):
         return self.simulation2.state()
 
-    def continue_simulate(self, v=False):
+    def set_continue_simulate(self, v=False):
         self._continue_simulate = v
         
     def set_voltage_protocol(self, p, prt_mask=None):
@@ -162,7 +162,11 @@ class Model(pints.ForwardModel):
         if not self._continue_simulate:
             self.simulation1.reset()
             self.simulation1.set_state(self.init_state)
-            self.simulation1.pre(100e3)
+            try:
+                self.simulation1.pre(100e3)
+            except (myokit.SimulationError, myokit.SimulationCancelledError):
+                # return float('inf')
+                return np.full(times.shape, float('inf'))
             self.simulation2.set_state(self.simulation1.state())
         
         if read_log is None:
