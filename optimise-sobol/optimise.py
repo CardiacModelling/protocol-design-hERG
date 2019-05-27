@@ -109,6 +109,7 @@ score = s.MaxSobolScore(model,
         n=n_samples,
         )
 score.set_init_state(None)
+score.set_continue_simulate(False)
 
 x0 = [-80, 200, 20, 500, -40, 500]  # a pharma like protocol
 
@@ -128,9 +129,11 @@ for i_set in range(model.n_parameters()):
     if i_set > 0:
         # Continue from previous simulation
         score.set_init_state(current_states)
+        score.set_continue_simulate(True)
     else:
         # Start from steady state
         score.set_init_state(None)
+        score.set_continue_simulate(False)
 
     # Set a different model parameter to be maximised
     score.set_max_idx(i_set)
@@ -146,7 +149,7 @@ for i_set in range(model.n_parameters()):
             boundaries=boundaries,
             method=pints.XNES)
     opt.set_max_iterations(None)
-    opt.set_parallel(True)
+    opt.set_parallel(8)
 
     # Run optimisation
     try:

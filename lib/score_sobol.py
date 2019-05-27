@@ -45,6 +45,7 @@ class MaxSobolScore(pints.ErrorMeasure):
         self._n_parameters = len(self.parameters)
 
         self.set_init_state(None)
+        self.set_continue_simulate(False)
         
         self._parameter_samples = saltelli.sample(problem, n,
                 calc_second_order=False)
@@ -56,7 +57,7 @@ class MaxSobolScore(pints.ErrorMeasure):
 
             if np.sum(passed) < len(self._parameter_samples):
                 target_parameter_samples = len(self._parameter_samples)
-                ratio = target_parameter_samples / np.sum(passed)
+                ratio = target_parameter_samples / np.float(np.sum(passed))
                 print('Resampling with %.2f times more samples.' % ratio)
                 self._parameter_samples = saltelli.sample(problem,
                         int(ratio * n), calc_second_order=False)
@@ -97,6 +98,9 @@ class MaxSobolScore(pints.ErrorMeasure):
     def set_init_state(self, v=None):
         self._set_init_state = v
 
+    def set_continue_simulate(self, v=False):
+        self._continue_simulate = v
+
     def __call__(self, param, get_state=False, debug=False):
 
         # Time for simulation
@@ -112,6 +116,7 @@ class MaxSobolScore(pints.ErrorMeasure):
         for i, p in enumerate(self._parameter_samples):
             if self._set_init_state is not None:
                 self._model.set_init_state(self._set_init_state[i])
+                self._model.set_continue_simulate(self._continue_simulate)
             # Only use a scaler measure of the simulation output
             # TODO, check if this is sensible...
             f_sims.append(self._f(self._model.simulate(p, times)))
