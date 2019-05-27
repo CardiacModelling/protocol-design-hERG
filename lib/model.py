@@ -96,6 +96,7 @@ class Model(pints.ForwardModel):
         self.set_voltage_protocol(p)
         
         self.simulation2.set_tolerance(1e-10, 1e-12)
+        self.simulation2.set_max_step_size(1e-2)  # ms
         
         # Keep model
         self._model = model
