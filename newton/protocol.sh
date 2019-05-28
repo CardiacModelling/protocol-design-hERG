@@ -6,6 +6,13 @@ PROTOCOLS=(
         "wang3step"
         "squarewave"
         "maxdiff"
+        "spacefill10"
+        "spacefill19"
+        "spacefill26"
+        "hhbrute3gstep"
+        "wangbrute3gstep"
+        "hhsobol3step"
+        "wangsobol3step"
         "longap"
         "manualppx"
         )
