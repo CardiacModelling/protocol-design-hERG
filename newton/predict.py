@@ -103,9 +103,11 @@ for folder in folders:
 
     v = model.voltage(times)
 
+    rmsd = np.sqrt(np.mean((data - c) ** 2.))
+
     axes[0].plot(times, v, c='#7f7f7f')
 
-    axes[1].plot(times, c, label=prt)
+    axes[1].plot(times, c, label=prt + '; rmsd: %.1f' % rmsd)
 
 axes[1].legend()
 axes[0].set_ylabel('Voltage [mV]')
