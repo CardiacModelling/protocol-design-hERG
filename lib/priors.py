@@ -230,13 +230,13 @@ class WangIKrLogPrior(pints.LogPrior):
             # Check forward rates
             r = parameters[j] * np.exp(parameters[j + 1] * self.vmax)
             if np.any(r < self.rmin) or np.any(r > self.rmax):
-                if debug: print('r%s' % 2 * i - 1)
+                if debug: print('r%s' % (2 * i - 1))
                 return self.minf
 
             # Check backward rates
             r = parameters[j + 2] * np.exp(-parameters[j + 3] * self.vmin)
             if np.any(r < self.rmin) or np.any(r > self.rmax):
-                if debug: print('r%s' % 2 * (i + 1))
+                if debug: print('r%s' % (2 * (i + 1)))
                 return self.minf
 
         return 0
