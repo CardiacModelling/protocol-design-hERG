@@ -66,7 +66,7 @@ ions_conc = {
 # Prior
 import sys
 sys.path.append('../../lib/')  # where priors module is
-from priors import WangIKrLogPrior as LogPrior
+#from priors import WangIKrLogPrior as LogPrior
 
 # Prior parameters
 import glob
