@@ -1,0 +1,97 @@
+Nanion SyncroPatch Ephys Protocol  SpaceFillingProtocol08
+Vers. 1.3
+
+Measurement Mode
+
+Modus  VC
+LFVC  T
+Gentle Switch  T
+
+General Settings
+
+V Membrane [mV]  -80
+# of Sweeps  2
+Sweep Interval [ms]  19725.0
+Sample Period [us]  200
+# of Samples  73625
+# of Leak Pulses  2
+Leak Amplitude [mv]  -20
+Leak Duration [mv]  20
+Leak Delay [ms]  -200
+Leak Data  T
+
+
+Ephys Settings 
+
+Type	Vmemb T/F	Voltage [mV]	Duration [ms]	Vincrease [mV]	RecordData T/F	Group	Rep
+Set 	T	 -80.0	 250.0	   0.0	T	    -1	    -1
+Set 	F	-120.0	  50.0	   0.0	T	    -1	    -1
+Ramp	F	 -80.0	 400.0	   0.0	T	    -1	    -1
+Set 	F	 -80.0	 200.0	   0.0	T	    -1	    -1
+Set 	F	  40.0	1000.0	   0.0	T	    -1	    -1
+Set 	F	-120.0	 500.0	   0.0	T	    -1	    -1
+Set 	F	 -80.0	1000.0	   0.0	T	    -1	    -1
+Set 	F	-113.5	  31.0	   0.0	T	    -1	    -1
+Set 	F	  59.3	 199.0	   0.0	T	    -1	    -1
+Set 	F	 -97.4	 372.0	   0.0	T	    -1	    -1
+Set 	F	  42.2	 723.0	   0.0	T	    -1	    -1
+Set 	F	 -59.6	 456.0	   0.0	T	    -1	    -1
+Set 	F	-114.2	 310.0	   0.0	T	    -1	    -1
+Set 	F	  48.7	 308.0	   0.0	T	    -1	    -1
+Set 	F	 -52.5	 225.0	   0.0	T	    -1	    -1
+Set 	F	 -79.1	 484.0	   0.0	T	    -1	    -1
+Set 	F	  38.8	 494.0	   0.0	T	    -1	    -1
+Set 	F	 -54.2	 535.0	   0.0	T	    -1	    -1
+Set 	F	 -86.4	 735.0	   0.0	T	    -1	    -1
+Set 	F	  53.6	 106.0	   0.0	T	    -1	    -1
+Set 	F	 -70.4	 217.0	   0.0	T	    -1	    -1
+Set 	F	  39.9	  40.0	   0.0	T	    -1	    -1
+Set 	F	 -70.7	 130.0	   0.0	T	    -1	    -1
+Set 	F	 -13.4	  81.0	   0.0	T	    -1	    -1
+Set 	F	-115.0	  20.0	   0.0	T	    -1	    -1
+Set 	F	  42.6	  79.0	   0.0	T	    -1	    -1
+Set 	F	 -49.9	 593.0	   0.0	T	    -1	    -1
+Set 	F	 -70.3	 357.0	   0.0	T	    -1	    -1
+Set 	F	 -25.0	  23.0	   0.0	T	    -1	    -1
+Set 	F	-111.8	  24.0	   0.0	T	    -1	    -1
+Set 	F	 -56.6	  21.0	   0.0	T	    -1	    -1
+Set 	F	  49.9	 263.0	   0.0	T	    -1	    -1
+Set 	F	 -26.3	  25.0	   0.0	T	    -1	    -1
+Set 	F	  19.2	  21.0	   0.0	T	    -1	    -1
+Set 	F	 -35.4	  60.0	   0.0	T	    -1	    -1
+Set 	F	 -99.7	  41.0	   0.0	T	    -1	    -1
+Set 	F	  35.2	  24.0	   0.0	T	    -1	    -1
+Set 	F	-106.2	  23.0	   0.0	T	    -1	    -1
+Set 	F	  15.4	  22.0	   0.0	T	    -1	    -1
+Set 	F	 -78.0	 249.0	   0.0	T	    -1	    -1
+Set 	F	  13.9	 336.0	   0.0	T	    -1	    -1
+Set 	F	 -53.4	 266.0	   0.0	T	    -1	    -1
+Set 	F	-105.2	  24.0	   0.0	T	    -1	    -1
+Set 	F	 -17.7	  40.0	   0.0	T	    -1	    -1
+Set 	F	  52.4	 126.0	   0.0	T	    -1	    -1
+Set 	F	 -77.3	  25.0	   0.0	T	    -1	    -1
+Set 	F	  11.0	 246.0	   0.0	T	    -1	    -1
+Set 	F	-100.8	  47.0	   0.0	T	    -1	    -1
+Set 	F	  -1.6	  47.0	   0.0	T	    -1	    -1
+Set 	F	 -86.2	  24.0	   0.0	T	    -1	    -1
+Set 	F	 -32.5	  21.0	   0.0	T	    -1	    -1
+Set 	F	  -1.6	  20.0	   0.0	T	    -1	    -1
+Set 	F	  53.7	 166.0	   0.0	T	    -1	    -1
+Set 	F	 -50.2	  34.0	   0.0	T	    -1	    -1
+Set 	F	  57.7	  28.0	   0.0	T	    -1	    -1
+Set 	F	 -29.2	  24.0	   0.0	T	    -1	    -1
+Set 	F	-102.7	  20.0	   0.0	T	    -1	    -1
+Set 	F	 -39.2	  40.0	   0.0	T	    -1	    -1
+Set 	F	 -80.0	1000.0	   0.0	T	    -1	    -1
+Set 	F	  40.0	 500.0	   0.0	T	    -1	    -1
+Set 	F	 -70.0	  10.0	   0.0	T	    -1	    -1
+Ramp	F	-110.0	 100.0	   0.0	T	    -1	    -1
+Set 	F	-120.0	 390.0	   0.0	T	    -1	    -1
+Set 	F	 -80.0	 500.0	   0.0	T	    -1	    -1
+
+
+Online Analysis Settings Vers. 1.2
+
+Name	Type	X Axis	XCursor 1 [ms]	XCursor 2 [ms]	Y Analysis	Operand 1	Operator	Operand 2	Property
+
+

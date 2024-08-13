@@ -1,0 +1,3 @@
+SpaceFillingProtocol19 for the best sampling score for hh_ikr_rt
+SpaceFillingProtocol10 for the best maxdiff score for hh_ikr_rt and wang_ikr_rt
+SpaceFillingProtocol26 for the best Gary's score for Beattie 2017 model
