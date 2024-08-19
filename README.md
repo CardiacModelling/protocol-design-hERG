@@ -1,6 +1,6 @@
 # Protocol designs for hERG
 
-This repo contains code to reproduce the work in "_A range of voltage-clamp protocol designs for rapid capture of hERG kinetics_" by Chon Lok Lei, Dominic G. Whittaker, Monique J. Windley, Adam P. Hill, Gary R. Mirams.
+This repo contains code to reproduce the work in "_A range of voltage-clamp protocol designs for rapid capture of hERG kinetics_" by Chon Lok Lei, Dominic G. Whittaker, Monique J. Windley, Matthew D. Perry, Adam P. Hill, Gary R. Mirams.
 
 All protocol designs are provided as time series CSV files in [`protocol-time-series`](protocol-time-series).
 
